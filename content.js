@@ -16,11 +16,136 @@
     }
   };
 
-  const frames = {
-    idle: chrome.runtime.getURL("assets/cat_idle.png"),
-    walk: chrome.runtime.getURL("assets/cat_walk.png"),
-    hop: chrome.runtime.getURL("assets/cat_walk.png"),
-    sleep: chrome.runtime.getURL("assets/cat_sleep.png")
+  const palette = {
+    ".": null,
+    "1": "#0f172a",
+    "2": "#1f2937",
+    "3": "#374151",
+    "4": "#e6d8c8",
+    "5": "#fefefe",
+    "6": "#f59e0b"
+  };
+
+  const buildFrame = (lines) =>
+    lines.map((row) => row.split("").map((ch) => palette[ch] || null));
+
+  const pixelFrames = {
+    idle: [
+      buildFrame([
+        "................",
+        "..11............",
+        ".13311..........",
+        "13333311........",
+        "133443331.......",
+        "1334443331......",
+        "13344553331.....",
+        ".33333333331....",
+        ".33333333331....",
+        ".13333333331....",
+        ".1333333331.....",
+        "..133311331.....",
+        "...111111.......",
+        ".....1.1........",
+        ".....1.1........",
+        ".....1.1........"
+      ])
+    ],
+    walk: [
+      buildFrame([
+        "................",
+        "..11............",
+        ".13311..........",
+        "13333311........",
+        "133443331.......",
+        "1334443331......",
+        "13344553331.....",
+        ".33333333331....",
+        ".33333333331....",
+        ".13333333331....",
+        ".1333333331.....",
+        "..133311331.....",
+        "...11..11.......",
+        "..11....11......",
+        "..1......1......",
+        "..1......1......"
+      ]),
+      buildFrame([
+        "................",
+        "..11............",
+        ".13311..........",
+        "13333311........",
+        "133443331.......",
+        "1334443331......",
+        "13344553331.....",
+        ".33333333331....",
+        ".33333333331....",
+        ".13333333331....",
+        ".1333333331.....",
+        "..133311331.....",
+        "..11....11......",
+        "...11..11.......",
+        "...1....1.......",
+        "...1....1......."
+      ])
+    ],
+    hop: [
+      buildFrame([
+        "................",
+        "..11............",
+        ".13311..........",
+        "13333311........",
+        "133443331.......",
+        "1334443331......",
+        "13344553331.....",
+        ".33333333331....",
+        ".33333333331....",
+        ".13333333331....",
+        ".1333333331.....",
+        "..133311331.....",
+        "...11..11.......",
+        "...1....1.......",
+        "...1....1.......",
+        "...1....1......."
+      ]),
+      buildFrame([
+        "................",
+        "..11............",
+        ".13311..........",
+        "13333311........",
+        "133443331.......",
+        "1334443331......",
+        "13344553331.....",
+        ".33333333331....",
+        ".33333333331....",
+        ".13333333331....",
+        ".1333333331.....",
+        "..133311331.....",
+        "...1....1.......",
+        "...1....1.......",
+        "...1....1.......",
+        "...1....1......."
+      ])
+    ],
+    sleep: [
+      buildFrame([
+        "................",
+        "................",
+        "................",
+        "................",
+        "..133333331.....",
+        ".13344443331....",
+        ".33444553331....",
+        ".33444433331....",
+        ".1333333331.....",
+        ".133333331......",
+        "..1111111.......",
+        "................",
+        "................",
+        "................",
+        "................",
+        "................"
+      ])
+    ]
   };
 
   const state = {
@@ -32,13 +157,17 @@
     lastInteraction: performance.now(),
     cursor: { x: null, y: null },
     viewportWidth: window.innerWidth,
-    lastTick: performance.now()
+    lastTick: performance.now(),
+    pose: "idle",
+    frameIndex: 0,
+    lastFrameChange: performance.now()
   };
 
   let settings = { ...defaultSettings };
   let container;
   let petWrapper;
-  let petImg;
+  let petCanvas;
+  let ctx;
   let ready = false;
 
   const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
@@ -77,9 +206,11 @@
   };
 
   const applySettings = () => {
-    if (!container || !petImg || !petWrapper) return;
-    petImg.style.width = `${settings.size}px`;
-    petImg.style.height = `${settings.size}px`;
+    if (!container || !petCanvas || !petWrapper) return;
+    petCanvas.width = settings.size;
+    petCanvas.height = settings.size;
+    petCanvas.style.width = `${settings.size}px`;
+    petCanvas.style.height = `${settings.size}px`;
     container.style.height = `${settings.size + 24}px`;
     state.x = clamp(
       state.x || window.innerWidth * 0.5,
@@ -87,6 +218,9 @@
       window.innerWidth - settings.size - 4
     );
     petWrapper.style.bottom = "8px";
+    if (ctx) {
+      drawFrame(state.pose || "idle");
+    }
   };
 
   const initDom = () => {
@@ -94,13 +228,14 @@
     container.id = "page-pet-cat-container";
     petWrapper = document.createElement("div");
     petWrapper.className = "page-pet-cat-wrapper";
-    petImg = document.createElement("img");
-    petImg.className = "page-pet-cat";
-    petImg.alt = "Little cat";
-    petImg.src = frames.idle;
-    petImg.draggable = false;
-    petImg.setAttribute("aria-hidden", "true");
-    petWrapper.appendChild(petImg);
+    petCanvas = document.createElement("canvas");
+    petCanvas.className = "page-pet-cat";
+    petCanvas.width = settings.size;
+    petCanvas.height = settings.size;
+    petCanvas.setAttribute("aria-hidden", "true");
+    petCanvas.draggable = false;
+    ctx = petCanvas.getContext("2d");
+    petWrapper.appendChild(petCanvas);
     container.appendChild(petWrapper);
     document.documentElement.appendChild(container);
     applySettings();
@@ -119,14 +254,20 @@
     state.sleeping = false;
     state.pausedUntil = performance.now() + 400;
     petWrapper.classList.remove("page-pet-sleep");
-    petImg.src = frames.idle;
+    state.pose = "idle";
+    state.frameIndex = 0;
+    state.lastFrameChange = performance.now();
+    drawFrame("idle");
   };
 
   const enterSleep = () => {
     state.sleeping = true;
     petWrapper.classList.remove("page-pet-hop");
     petWrapper.classList.add("page-pet-sleep");
-    petImg.src = frames.sleep;
+    state.pose = "sleep";
+    state.frameIndex = 0;
+    state.lastFrameChange = performance.now();
+    drawFrame("sleep");
   };
 
   const handlePointerMove = (event) => {
@@ -150,15 +291,49 @@
   };
 
   const chooseFrame = (moving) => {
-    if (state.sleeping) {
-      petImg.src = frames.sleep;
-      return;
+    if (state.sleeping) return "sleep";
+    if (state.hopUntil > performance.now()) return "hop";
+    return moving ? "walk" : "idle";
+  };
+
+  const drawFrame = (pose) => {
+    if (!ctx || !petCanvas) return;
+    const frames = pixelFrames[pose] || pixelFrames.idle;
+    const frame = frames[state.frameIndex % frames.length];
+    if (!frame) return;
+
+    const baseSize = frame.length;
+    const scale = settings.size / baseSize;
+    ctx.clearRect(0, 0, petCanvas.width, petCanvas.height);
+    frame.forEach((row, y) => {
+      row.forEach((color, x) => {
+        if (!color) return;
+        ctx.fillStyle = color;
+        ctx.fillRect(x * scale, y * scale, scale, scale);
+      });
+    });
+  };
+
+  const updateAnimation = (pose, timestamp) => {
+    const frameSet = pixelFrames[pose] || pixelFrames.idle;
+    const durations = { walk: 160, hop: 140, idle: 420, sleep: 650 };
+    const frameDuration = durations[pose] || 220;
+    let needsDraw = false;
+
+    if (pose !== state.pose) {
+      state.pose = pose;
+      state.frameIndex = 0;
+      state.lastFrameChange = timestamp;
+      needsDraw = true;
+    } else if (frameSet.length > 1 && timestamp - state.lastFrameChange > frameDuration) {
+      state.frameIndex = (state.frameIndex + 1) % frameSet.length;
+      state.lastFrameChange = timestamp;
+      needsDraw = true;
     }
-    if (state.hopUntil > performance.now()) {
-      petImg.src = frames.hop;
-      return;
+
+    if (needsDraw) {
+      drawFrame(pose);
     }
-    petImg.src = moving ? frames.walk : frames.idle;
   };
 
   const tick = (timestamp) => {
@@ -207,7 +382,8 @@
     const dx = state.sleeping ? 0 : clamp(state.targetX - state.x, -maxMove, maxMove);
     state.x = clamp(state.x + dx, 4, state.viewportWidth - settings.size - 4);
 
-    chooseFrame(Math.abs(dx) > 0.6 && !state.sleeping);
+    const pose = chooseFrame(Math.abs(dx) > 0.6 && !state.sleeping);
+    updateAnimation(pose, timestamp);
     petWrapper.style.transform = `translate3d(${state.x}px, 0, 0)`;
 
     requestAnimationFrame(tick);
@@ -220,7 +396,7 @@
       state.viewportWidth = window.innerWidth;
       state.x = clamp(state.x, 4, state.viewportWidth - settings.size - 4);
     });
-    petImg.addEventListener("click", handlePetClick);
+    petCanvas.addEventListener("click", handlePetClick);
   };
 
   const handleMessages = () => {
@@ -244,6 +420,7 @@
     handleMessages();
     await loadSettings();
     ready = true;
+    drawFrame("idle");
     pickWanderTarget();
     requestAnimationFrame(tick);
   };
