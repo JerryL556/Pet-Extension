@@ -163,8 +163,10 @@
     if (!settings.reactions.hopOnPet) return;
     const now = performance.now();
     state.hopUntil = now + 650;
-    petWrapper.classList.add("page-pet-hop");
-    setTimeout(() => petWrapper.classList.remove("page-pet-hop"), 650);
+    if (petText) {
+      petText.classList.add("page-pet-hop");
+      setTimeout(() => petText.classList.remove("page-pet-hop"), 650);
+    }
   };
 
   const chooseFrame = (moving) => {
