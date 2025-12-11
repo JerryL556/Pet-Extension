@@ -1,7 +1,7 @@
 const STORAGE_KEY = "pagePetCatSettings";
 
 const defaultSettings = {
-  size: 32,
+  size: 20,
   wanderSpeed: 55,
   followSpeed: 110,
   followDistance: 140,

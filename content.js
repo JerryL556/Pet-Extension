@@ -4,7 +4,7 @@
 
   const STORAGE_KEY = "pagePetCatSettings";
   const defaultSettings = {
-    size: 32,
+    size: 20,
     wanderSpeed: 55, // px per second
     followSpeed: 110,
     followDistance: 140,
@@ -29,7 +29,8 @@
     cursor: { x: null, y: null },
     viewportWidth: window.innerWidth,
     lastTick: performance.now(),
-    pose: "idle"
+    pose: "idle",
+    direction: "right"
   };
 
   let settings = { ...defaultSettings };
@@ -57,7 +58,7 @@
     try {
       const url = chrome.runtime.getURL("EMOJIS.txt");
       const res = await fetch(url);
-      const text = await res.text();
+      const text = (await res.text()).replace(/^\uFEFF/, "");
       const parsed = text
         .split(/\r?\n/)
         .map((line) => line.trim())
@@ -135,7 +136,7 @@
     state.pausedUntil = performance.now() + 400;
     petWrapper.classList.remove("page-pet-sleep");
     state.pose = "idle";
-    renderKamoji("idle");
+    renderKamoji("idle", state.direction);
   };
 
   const enterSleep = () => {
@@ -143,7 +144,7 @@
     petWrapper.classList.remove("page-pet-hop");
     petWrapper.classList.add("page-pet-sleep");
     state.pose = "sleep";
-    renderKamoji("sleep");
+    renderKamoji("sleep", state.direction);
   };
 
   const handlePointerMove = (event) => {
@@ -172,11 +173,22 @@
     return moving ? "walk" : "idle";
   };
 
-  const renderKamoji = (pose) => {
+  const renderKamoji = (pose, direction = state.direction) => {
     if (!petText) return;
-    const face = kamojiList[0] || DEFAULT_KAMOJI;
+    const base = kamojiList[0] || DEFAULT_KAMOJI;
+    const right = kamojiList[1] || base;
+    const left = kamojiList[2] || right || base;
+    const face =
+      pose === "walk" || pose === "hop"
+        ? direction === "left"
+          ? left
+          : right
+        : pose === "sleep"
+          ? base
+          : base;
     petText.textContent = face;
     petText.dataset.pose = pose;
+    petText.dataset.direction = direction;
   };
 
   const tick = (timestamp) => {
@@ -225,10 +237,14 @@
     const dx = state.sleeping ? 0 : clamp(state.targetX - state.x, -maxMove, maxMove);
     state.x = clamp(state.x + dx, 4, state.viewportWidth - settings.size - 4);
 
+    if (Math.abs(dx) > 0.3) {
+      state.direction = dx < 0 ? "left" : "right";
+    }
+
     const pose = chooseFrame(Math.abs(dx) > 0.6 && !state.sleeping);
-    if (pose !== state.pose) {
+    if (pose !== state.pose || petText.dataset.direction !== state.direction) {
       state.pose = pose;
-      renderKamoji(pose);
+      renderKamoji(pose, state.direction);
     }
     petWrapper.style.transform = `translate3d(${state.x}px, 0, 0)`;
 
@@ -267,7 +283,7 @@
     handleMessages();
     await loadSettings();
     ready = true;
-    renderKamoji("idle");
+    renderKamoji("idle", state.direction);
     pickWanderTarget();
     requestAnimationFrame(tick);
   };
