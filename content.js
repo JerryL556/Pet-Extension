@@ -16,137 +16,8 @@
     }
   };
 
-  const palette = {
-    ".": null,
-    "1": "#0f172a",
-    "2": "#1f2937",
-    "3": "#374151",
-    "4": "#e6d8c8",
-    "5": "#fefefe",
-    "6": "#f59e0b"
-  };
-
-  const buildFrame = (lines) =>
-    lines.map((row) => row.split("").map((ch) => palette[ch] || null));
-
-  const pixelFrames = {
-    idle: [
-      buildFrame([
-        "...11.11........",
-        "..1133111.......",
-        "..1333331.......",
-        "..1333331.......",
-        "..1333331.......",
-        "...333331.......",
-        "..33333331.11...",
-        ".333333333111...",
-        ".3333333331.11..",
-        ".3333333331.....",
-        ".3333333331.....",
-        "....1..1..1..1..",
-        "....1..1..1..1..",
-        "................",
-        "................",
-        "................"
-      ])
-    ],
-    walk: [
-      buildFrame([
-        "...11.11........",
-        "..1133111.......",
-        "..1333331.......",
-        "..1333331.......",
-        "..1333331.......",
-        "...333331.......",
-        "..33333331.11...",
-        ".333333333111...",
-        ".3333333331.11..",
-        ".3333333331.....",
-        ".3333333331.....",
-        "...1..1...1..1..",
-        "..1..1....1..1..",
-        "................",
-        "................",
-        "................"
-      ]),
-      buildFrame([
-        "...11.11........",
-        "..1133111.......",
-        "..1333331.......",
-        "..1333331.......",
-        "..1333331.......",
-        "...333331.......",
-        "..33333331.11...",
-        ".333333333111...",
-        ".3333333331.11..",
-        ".3333333331.....",
-        ".3333333331.....",
-        "..1..1....1..1..",
-        "...1..1...1..1..",
-        "................",
-        "................",
-        "................"
-      ])
-    ],
-    hop: [
-      buildFrame([
-        "...11.11........",
-        "..1133111.......",
-        "..1333331.......",
-        "..1333331.......",
-        "..1333331.......",
-        "...333331.......",
-        "..33333331.11...",
-        ".333333333111...",
-        ".3333333331.11..",
-        ".3333333331.....",
-        "..33333331......",
-        "...1..1..1......",
-        "...1..1..1......",
-        "................",
-        "................",
-        "................"
-      ]),
-      buildFrame([
-        "...11.11........",
-        "..1133111.......",
-        "..1333331.......",
-        "..1333331.......",
-        "..1333331.......",
-        "...333331.......",
-        "..33333331.11...",
-        ".333333333111...",
-        ".3333333331.11..",
-        ".3333333331.....",
-        "...333331.......",
-        "....1..1........",
-        "....1..1........",
-        "................",
-        "................",
-        "................"
-      ])
-    ],
-    sleep: [
-      buildFrame([
-        "................",
-        "................",
-        "...133331.......",
-        "..13333331......",
-        "..133333331.....",
-        "..1333333331....",
-        "...133333331....",
-        "....1333331.....",
-        ".....13331......",
-        "......111......1",
-        "...........1111.",
-        "................",
-        "................",
-        "................",
-        "................",
-        "................"
-      ])
-    ]
-  };
+  const DEFAULT_KAMOJI = "(´・ω・`)";
+  let kamojiList = [DEFAULT_KAMOJI];
 
   const state = {
     x: 0,
@@ -158,16 +29,13 @@
     cursor: { x: null, y: null },
     viewportWidth: window.innerWidth,
     lastTick: performance.now(),
-    pose: "idle",
-    frameIndex: 0,
-    lastFrameChange: performance.now()
+    pose: "idle"
   };
 
   let settings = { ...defaultSettings };
   let container;
   let petWrapper;
-  let petCanvas;
-  let ctx;
+  let petText;
   let ready = false;
 
   const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
@@ -183,6 +51,24 @@
       }
     });
     return merged;
+  };
+
+  const loadKamojiList = async () => {
+    try {
+      const url = chrome.runtime.getURL("EMOJIS.txt");
+      const res = await fetch(url);
+      const text = await res.text();
+      const parsed = text
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+      if (parsed.length) {
+        kamojiList = parsed;
+      }
+    } catch (err) {
+      console.warn("Page Pet: could not load kamoji list", err);
+      kamojiList = [DEFAULT_KAMOJI];
+    }
   };
 
   const loadSettings = async () => {
@@ -206,11 +92,9 @@
   };
 
   const applySettings = () => {
-    if (!container || !petCanvas || !petWrapper) return;
-    petCanvas.width = settings.size;
-    petCanvas.height = settings.size;
-    petCanvas.style.width = `${settings.size}px`;
-    petCanvas.style.height = `${settings.size}px`;
+    if (!container || !petText || !petWrapper) return;
+    petText.style.fontSize = `${settings.size}px`;
+    petText.style.lineHeight = "1";
     container.style.height = `${settings.size + 24}px`;
     state.x = clamp(
       state.x || window.innerWidth * 0.5,
@@ -218,9 +102,7 @@
       window.innerWidth - settings.size - 4
     );
     petWrapper.style.bottom = "8px";
-    if (ctx) {
-      drawFrame(state.pose || "idle");
-    }
+    renderKamoji(state.pose || "idle");
   };
 
   const initDom = () => {
@@ -228,14 +110,12 @@
     container.id = "page-pet-cat-container";
     petWrapper = document.createElement("div");
     petWrapper.className = "page-pet-cat-wrapper";
-    petCanvas = document.createElement("canvas");
-    petCanvas.className = "page-pet-cat";
-    petCanvas.width = settings.size;
-    petCanvas.height = settings.size;
-    petCanvas.setAttribute("aria-hidden", "true");
-    petCanvas.draggable = false;
-    ctx = petCanvas.getContext("2d");
-    petWrapper.appendChild(petCanvas);
+    petText = document.createElement("span");
+    petText.className = "page-pet-cat";
+    petText.setAttribute("aria-hidden", "true");
+    petText.draggable = false;
+    petText.textContent = DEFAULT_KAMOJI;
+    petWrapper.appendChild(petText);
     container.appendChild(petWrapper);
     document.documentElement.appendChild(container);
     applySettings();
@@ -255,9 +135,7 @@
     state.pausedUntil = performance.now() + 400;
     petWrapper.classList.remove("page-pet-sleep");
     state.pose = "idle";
-    state.frameIndex = 0;
-    state.lastFrameChange = performance.now();
-    drawFrame("idle");
+    renderKamoji("idle");
   };
 
   const enterSleep = () => {
@@ -265,9 +143,7 @@
     petWrapper.classList.remove("page-pet-hop");
     petWrapper.classList.add("page-pet-sleep");
     state.pose = "sleep";
-    state.frameIndex = 0;
-    state.lastFrameChange = performance.now();
-    drawFrame("sleep");
+    renderKamoji("sleep");
   };
 
   const handlePointerMove = (event) => {
@@ -296,44 +172,11 @@
     return moving ? "walk" : "idle";
   };
 
-  const drawFrame = (pose) => {
-    if (!ctx || !petCanvas) return;
-    const frames = pixelFrames[pose] || pixelFrames.idle;
-    const frame = frames[state.frameIndex % frames.length];
-    if (!frame) return;
-
-    const baseSize = frame.length;
-    const scale = settings.size / baseSize;
-    ctx.clearRect(0, 0, petCanvas.width, petCanvas.height);
-    frame.forEach((row, y) => {
-      row.forEach((color, x) => {
-        if (!color) return;
-        ctx.fillStyle = color;
-        ctx.fillRect(x * scale, y * scale, scale, scale);
-      });
-    });
-  };
-
-  const updateAnimation = (pose, timestamp) => {
-    const frameSet = pixelFrames[pose] || pixelFrames.idle;
-    const durations = { walk: 160, hop: 140, idle: 420, sleep: 650 };
-    const frameDuration = durations[pose] || 220;
-    let needsDraw = false;
-
-    if (pose !== state.pose) {
-      state.pose = pose;
-      state.frameIndex = 0;
-      state.lastFrameChange = timestamp;
-      needsDraw = true;
-    } else if (frameSet.length > 1 && timestamp - state.lastFrameChange > frameDuration) {
-      state.frameIndex = (state.frameIndex + 1) % frameSet.length;
-      state.lastFrameChange = timestamp;
-      needsDraw = true;
-    }
-
-    if (needsDraw) {
-      drawFrame(pose);
-    }
+  const renderKamoji = (pose) => {
+    if (!petText) return;
+    const face = kamojiList[0] || DEFAULT_KAMOJI;
+    petText.textContent = face;
+    petText.dataset.pose = pose;
   };
 
   const tick = (timestamp) => {
@@ -383,7 +226,10 @@
     state.x = clamp(state.x + dx, 4, state.viewportWidth - settings.size - 4);
 
     const pose = chooseFrame(Math.abs(dx) > 0.6 && !state.sleeping);
-    updateAnimation(pose, timestamp);
+    if (pose !== state.pose) {
+      state.pose = pose;
+      renderKamoji(pose);
+    }
     petWrapper.style.transform = `translate3d(${state.x}px, 0, 0)`;
 
     requestAnimationFrame(tick);
@@ -396,7 +242,7 @@
       state.viewportWidth = window.innerWidth;
       state.x = clamp(state.x, 4, state.viewportWidth - settings.size - 4);
     });
-    petCanvas.addEventListener("click", handlePetClick);
+    petText.addEventListener("click", handlePetClick);
   };
 
   const handleMessages = () => {
@@ -416,11 +262,12 @@
 
   const init = async () => {
     initDom();
+    await loadKamojiList();
     attachEvents();
     handleMessages();
     await loadSettings();
     ready = true;
-    drawFrame("idle");
+    renderKamoji("idle");
     pickWanderTarget();
     requestAnimationFrame(tick);
   };

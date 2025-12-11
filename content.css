@@ -18,12 +18,13 @@
 }
 
 .page-pet-cat {
-  display: block;
-  width: 32px;
-  height: 32px;
-  image-rendering: pixelated;
+  display: inline-block;
+  font-family: "Segoe UI Emoji", "Noto Color Emoji", "Apple Color Emoji", monospace;
+  font-size: 32px;
+  line-height: 1;
   pointer-events: auto;
   user-select: none;
+  white-space: pre;
 }
 
 .page-pet-hop {
