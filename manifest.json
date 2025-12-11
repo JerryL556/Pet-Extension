@@ -1,0 +1,34 @@
+{
+  "manifest_version": 3,
+  "name": "Page Pet Cat",
+  "description": "A tiny cat that wanders along the bottom of pages and reacts to you.",
+  "version": "0.1.0",
+  "permissions": [
+    "storage"
+  ],
+  "icons": {
+    "32": "assets/cat_idle.png",
+    "48": "assets/cat_idle.png",
+    "128": "assets/cat_idle.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "32": "assets/cat_idle.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "content.css"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}

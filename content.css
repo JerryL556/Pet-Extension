@@ -1,0 +1,49 @@
+#page-pet-cat-container {
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 72px;
+  pointer-events: none;
+  z-index: 2147483646;
+}
+
+.page-pet-cat-wrapper {
+  position: absolute;
+  left: 0;
+  bottom: 8px;
+  transform: translate3d(0, 0, 0);
+  transition: transform 0.08s linear;
+  pointer-events: none;
+}
+
+.page-pet-cat {
+  width: 32px;
+  height: 32px;
+  image-rendering: pixelated;
+  pointer-events: auto;
+  user-select: none;
+}
+
+.page-pet-hop {
+  animation: page-pet-hop 0.6s ease-out;
+}
+
+.page-pet-sleep {
+  opacity: 0.85;
+}
+
+@keyframes page-pet-hop {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  30% {
+    transform: translate3d(0, -18px, 0);
+  }
+  60% {
+    transform: translate3d(0, -10px, 0);
+  }
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+}

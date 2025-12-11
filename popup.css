@@ -1,0 +1,123 @@
+:root {
+  --navy: #0b1d3a;
+  --navy-dark: #08152b;
+  --gold: #f2c94c;
+  --text: #e7edf8;
+  --muted: #9fb3d1;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 14px;
+  width: 320px;
+  background: radial-gradient(120% 120% at 10% 20%, #102b52 0%, #09172f 55%, #061122 100%);
+  color: var(--text);
+  font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif;
+}
+
+h1,
+h2 {
+  margin: 0;
+  color: var(--gold);
+  letter-spacing: 0.01em;
+}
+
+h2 {
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 4px rgba(242, 201, 76, 0.18);
+  background: var(--gold);
+}
+
+section {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01));
+  border: 1px solid rgba(242, 201, 76, 0.15);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+
+label.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0;
+  font-size: 13px;
+}
+
+label.row input {
+  accent-color: var(--gold);
+}
+
+.slider {
+  margin: 10px 0;
+}
+
+.slider .label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+input[type="range"] {
+  width: 100%;
+  accent-color: var(--gold);
+}
+
+footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 6px;
+}
+
+button {
+  background: var(--gold);
+  color: #0d1a2d;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.2s ease;
+}
+
+button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 18px rgba(242, 201, 76, 0.3);
+}
+
+button:active {
+  transform: translateY(0);
+}
+
+.status {
+  font-size: 12px;
+  color: var(--muted);
+}

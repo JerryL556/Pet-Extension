@@ -1,0 +1,68 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Page Pet Cat</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header class="top">
+      <div>
+        <div class="eyebrow">Virtual Pet</div>
+        <h1>Page Cat</h1>
+      </div>
+      <span class="dot"></span>
+    </header>
+
+    <main>
+      <section>
+        <h2>Behavior</h2>
+        <label class="row">
+          <input type="checkbox" id="followNear" />
+          <span>Follow cursor when nearby</span>
+        </label>
+        <label class="row">
+          <input type="checkbox" id="hopOnPet" />
+          <span>Hop when clicked</span>
+        </label>
+        <label class="row">
+          <input type="checkbox" id="sleepOnIdle" />
+          <span>Sleep when the page is idle</span>
+        </label>
+        <div class="slider">
+          <div class="label">
+            <span>Wander speed</span>
+            <span id="wanderSpeedValue"></span>
+          </div>
+          <input type="range" id="wanderSpeed" min="20" max="120" step="5" />
+        </div>
+        <div class="slider">
+          <div class="label">
+            <span>Follow distance</span>
+            <span id="followDistanceValue"></span>
+          </div>
+          <input type="range" id="followDistance" min="60" max="240" step="10" />
+        </div>
+      </section>
+
+      <section>
+        <h2>Appearance</h2>
+        <div class="slider">
+          <div class="label">
+            <span>Cat size</span>
+            <span id="sizeValue"></span>
+          </div>
+          <input type="range" id="size" min="24" max="64" step="2" />
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <button id="reset">Reset to defaults</button>
+      <span class="status" id="status"></span>
+    </footer>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
